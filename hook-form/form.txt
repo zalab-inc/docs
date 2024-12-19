@@ -1,0 +1,77 @@
+
+"use client";
+import { Button } from "@/components/ui/button";
+import {
+	Form,
+	FormControl,
+	FormField,
+	FormItem,
+	FormLabel,
+	FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useHookFormAction } from "@next-safe-action/adapter-react-hook-form/hooks";
+import { toast } from "sonner";
+import { addCourseAction } from "./course-actions";
+import { CreateCourseSchema } from "./course-schemas";
+import {
+	Card,
+	CardHeader,
+	CardTitle,
+	CardDescription,
+	CardContent,
+} from "@/components/ui/card";
+
+export function AddCourseForm() {
+	const { form, handleSubmitWithAction, resetFormAndAction } =
+		useHookFormAction(addCourseAction, zodResolver(CreateCourseSchema), {
+			actionProps: {
+				onSuccess: ({ data }) => {
+					toast.success(data?.message);
+				},
+				onError: ({ error }) => {
+					toast.error(error?.serverError);
+				},
+			},
+			formProps: {
+				defaultValues: {
+					course: "",
+				},
+			},
+			errorMapProps: {
+				joinBy: " and ",
+			},
+		});
+
+	return (
+		<Card className="max-w-md w-full mx-auto">
+			<CardHeader>
+				<CardTitle>Add Course</CardTitle>
+				<CardDescription>Enter the details of the new course.</CardDescription>
+			</CardHeader>
+			<CardContent>
+				<Form {...form}>
+					<form onSubmit={handleSubmitWithAction} className="space-y-8">
+						<FormField
+							control={form.control}
+							name="course"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Course</FormLabel>
+									<FormControl>
+										<Input placeholder="Enter course name" {...field} />
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<Button type="submit" disabled={form.formState.isSubmitting}>
+							{form.formState.isSubmitting ? "Loading..." : "Add Course"}
+						</Button>
+					</form>
+				</Form>
+			</CardContent>
+		</Card>
+	);
+}

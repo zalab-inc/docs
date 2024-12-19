@@ -1,0 +1,31 @@
+"use server";
+
+import { returnValidationErrors } from "next-safe-action";
+import { actionClient } from "@/lib/safe-action";
+import { prisma } from "@/lib/prisma";
+import { CreateCourseSchema } from "./course-schemas";
+import { revalidatePath } from "next/cache";
+
+export const addCourseAction = actionClient
+	.schema(CreateCourseSchema)
+	.action(async ({ parsedInput }) => {
+		const newCourse = await prisma.course.create({
+			data: {
+				course: parsedInput.course,
+				createdAt: new Date(),
+				updatedAt: new Date(),
+			},
+		});
+
+		if (!newCourse?.id) {
+			return returnValidationErrors(CreateCourseSchema, {
+				_errors: ["Invalid course data"],
+			});
+		}
+		revalidatePath("/panel/course/listing");
+		return {
+			message: "Course created successfully",
+			course: newCourse,
+		};
+	});
+  
