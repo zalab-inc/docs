@@ -1,0 +1,472 @@
+### actions.ts
+
+"use server";
+
+import { ac } from "@/lib/safe-action";
+import { loginSchema } from "./login-validation";
+import { returnValidationErrors } from "next-safe-action";
+
+export const loginAction = ac
+	.schema(loginSchema)
+	.action(async ({ parsedInput }) => {
+		// Validate credentials
+		if (
+			parsedInput.username !== "admin" ||
+			parsedInput.password !== "password"
+		) {
+			// Return validation errors with specific messages
+			returnValidationErrors(loginSchema, {
+				_errors: ["Invalid credentials"],
+				username: {
+					_errors: ["Username not found"],
+				},
+				password: {
+					_errors: ["Password is incorrect"],
+				},
+			});
+		}
+
+    	// Return success response
+    	return {
+    		successful: true,
+    		username: parsedInput.username,
+    	};
+    });
+
+#### form.tsx
+
+"use client";
+
+import Link from "next/link";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useHookFormAction } from "@next-safe-action/adapter-react-hook-form/hooks";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
+
+import {
+	Form,
+	FormControl,
+	FormField,
+	FormItem,
+	FormLabel,
+	FormMessage,
+} from "@/components/ui/form";
+import { Button } from "@/components/ui/button";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { ForgotSchema } from "@/schemas/auth-schemas";
+import { forgotAction } from "@/actions/auth-actions";
+
+export function ForgotForm() {
+	const { form, handleSubmitWithAction } = useHookFormAction(
+		forgotAction,
+		zodResolver(ForgotSchema),
+		{
+			actionProps: {
+				onSuccess: ({ data }) => {
+					if (data?.message) {
+						toast.success(data.message);
+					}
+				},
+				onError: ({ error }) => {
+					if (typeof error?.serverError === "string") {
+						toast.error(error.serverError);
+					}
+				},
+			},
+			formProps: {
+				defaultValues: {
+					email: "",
+				},
+			},
+			errorMapProps: {
+				joinBy: " and ",
+			},
+		},
+	);
+
+    return (
+    	<div className="flex flex-col min-h-[50vh] h-full w-full items-center justify-center px-4">
+    		<Card className="mx-auto max-w-sm w-full">
+    			<CardHeader>
+    				<CardTitle className="text-2xl font-bold">Forgot Password</CardTitle>
+    				<CardDescription>
+    					Enter your email address and we'll send you password reset
+    					instructions.
+    				</CardDescription>
+    			</CardHeader>
+    			<CardContent>
+    				<Form {...form}>
+    					<form onSubmit={handleSubmitWithAction} className="space-y-6">
+    						<div className="grid gap-4">
+    							<FormField
+    								control={form.control}
+    								name="email"
+    								render={({ field }) => (
+    									<FormItem className="grid gap-2">
+    										<FormLabel htmlFor="email">Email Address</FormLabel>
+    										<FormControl>
+    											<Input
+    												id="email"
+    												placeholder="johndoe@mail.com"
+    												type="email"
+    												autoComplete="email"
+    												autoFocus
+    												{...field}
+    											/>
+    										</FormControl>
+    										<FormMessage />
+    									</FormItem>
+    								)}
+    							/>
+    							<Button
+    								type="submit"
+    								disabled={form.formState.isSubmitting}
+    								className="w-full"
+    							>
+    								{form.formState.isSubmitting ? (
+    									<>
+    										<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+    										Sending Instructions...
+    									</>
+    								) : (
+    									"Send Reset Instructions"
+    								)}
+    							</Button>
+    						</div>
+    					</form>
+    				</Form>
+    				<div className="mt-6 text-center text-sm">
+    					Remember your password?{" "}
+    					<Link href="/login" className="font-medium text-primary hover:underline">
+    						Back to Login
+    					</Link>
+    				</div>
+    			</CardContent>
+    		</Card>
+    	</div>
+    );
+
+}
+
+###########
+"use client";
+
+import Link from "next/link";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useHookFormAction } from "@next-safe-action/adapter-react-hook-form/hooks";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
+
+import {
+	Form,
+	FormControl,
+	FormField,
+	FormItem,
+	FormLabel,
+	FormMessage,
+} from "@/components/ui/form";
+import { Button } from "@/components/ui/button";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/shared/password-input";
+import { LoginSchema } from "./login-schema";
+import { loginAction } from "./login-actions";
+
+export function LoginForm() {
+	const { form, handleSubmitWithAction } = useHookFormAction(
+		loginAction,
+		zodResolver(LoginSchema),
+		{
+			actionProps: {
+				onSuccess: ({ data }) => {
+					if (data?.message) {
+						toast.success(data.message);
+					}
+				},
+				onError: ({ error }) => {
+					if (error?.serverError) {
+						toast.error(error.serverError);
+					}
+				},
+			},
+			formProps: {
+				defaultValues: {
+					email: "",
+					password: "",
+				},
+			},
+			errorMapProps: {
+				joinBy: " and ",
+			},
+		},
+	);
+
+    return (
+    	<div className="flex flex-col min-h-[50vh] h-full w-full items-center justify-center px-4">
+    		<Card className="mx-auto max-w-sm w-full">
+    			<CardHeader>
+    				<CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
+    				<CardDescription>
+    					Enter your credentials to access your account.
+    				</CardDescription>
+    			</CardHeader>
+    			<CardContent>
+    				<Form {...form}>
+    					<form onSubmit={handleSubmitWithAction} className="space-y-6">
+    						<div className="grid gap-4">
+    							<FormField
+    								control={form.control}
+    								name="email"
+    								render={({ field }) => (
+    									<FormItem className="grid gap-2">
+    										<FormLabel htmlFor="email">Email Address</FormLabel>
+    										<FormControl>
+    											<Input
+    												id="email"
+    												placeholder="johndoe@mail.com"
+    												type="email"
+    												autoComplete="email"
+    												autoFocus
+    												{...field}
+    											/>
+    										</FormControl>
+    										<FormMessage />
+    									</FormItem>
+    								)}
+    							/>
+    							<FormField
+    								control={form.control}
+    								name="password"
+    								render={({ field }) => (
+    									<FormItem className="grid gap-2">
+    										<div className="flex justify-between items-center">
+    											<FormLabel htmlFor="password">Password</FormLabel>
+    											<Link
+    												href="/forgot-password"
+    												className="text-sm text-primary hover:underline"
+    											>
+    												Forgot password?
+    											</Link>
+    										</div>
+    										<FormControl>
+    											<PasswordInput
+    												id="password"
+    												placeholder="Enter your password"
+    												autoComplete="current-password"
+    												{...field}
+    											/>
+    										</FormControl>
+    										<FormMessage />
+    									</FormItem>
+    								)}
+    							/>
+    							<Button
+    								type="submit"
+    								disabled={form.formState.isSubmitting}
+    								className="w-full"
+    							>
+    								{form.formState.isSubmitting ? (
+    									<>
+    										<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+    										Signing in...
+    									</>
+    								) : (
+    									"Sign In"
+    								)}
+    							</Button>
+    							<Button variant="outline" className="w-full">
+    								Continue with Google
+    							</Button>
+    						</div>
+    					</form>
+    				</Form>
+    				<div className="mt-6 text-center text-sm">
+    					Don&apos;t have an account?{" "}
+    					<Link href="/register" className="font-medium text-primary hover:underline">
+    						Create Account
+    					</Link>
+    				</div>
+    			</CardContent>
+    		</Card>
+    	</div>
+    );
+
+}
+
+###########################
+actions.ts
+"use server";
+
+import { returnValidationErrors } from "next-safe-action";
+import { actionClient } from "@/lib/safe-action";
+import { prisma } from "@/lib/prisma";
+import { CreateCourseSchema } from "./course-schemas";
+import { revalidatePath } from "next/cache";
+
+export const addCourseAction = actionClient
+	.schema(CreateCourseSchema)
+	.action(async ({ parsedInput }) => {
+		try {
+			const newCourse = await prisma.course.create({
+				data: {
+					course: parsedInput.course.trim(),
+					createdAt: new Date(),
+					updatedAt: new Date(),
+				},
+			});
+
+    		if (!newCourse?.id) {
+    			return returnValidationErrors(CreateCourseSchema, {
+    				_errors: ["Failed to create course"],
+    			});
+    		}
+
+    		revalidatePath("/panel/course/listing");
+
+    		return {
+    			message: "Course created successfully",
+    			course: newCourse,
+    		};
+    	} catch (error) {
+    		return returnValidationErrors(CreateCourseSchema, {
+    			_errors: ["An error occurred while creating the course"],
+    		});
+    	}
+    });
+
+######## form-alt.tsx
+
+"use client";
+import { Button } from "@/components/ui/button";
+import {
+Form,
+FormControl,
+FormField,
+FormItem,
+FormLabel,
+FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useHookFormAction } from "@next-safe-action/adapter-react-hook-form/hooks";
+import { toast } from "sonner";
+import { addCourseAction } from "./course-actions";
+import { CreateCourseSchema } from "./course-schemas";
+import {
+Card,
+CardHeader,
+CardTitle,
+CardDescription,
+CardContent,
+} from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
+
+export function AddCourseForm() {
+	const { form, handleSubmitWithAction, resetFormAndAction } =
+		useHookFormAction(addCourseAction, zodResolver(CreateCourseSchema), {
+			actionProps: {
+				onSuccess: ({ data }) => {
+					if (data?.message) {
+						toast.success(data.message);
+						form.reset();
+					}
+				},
+				onError: ({ error }) => {
+					if (error?.serverError) {
+						toast.error(error.serverError);
+					}
+				},
+			},
+			formProps: {
+				defaultValues: {
+					course: "",
+				},
+			},
+			errorMapProps: {
+				joinBy: " and ",
+			},
+		});
+
+    return (
+    	<Card className="max-w-md w-full mx-auto">
+    		<CardHeader>
+    			<CardTitle className="text-2xl font-bold">Add New Course</CardTitle>
+    			<CardDescription>Create a new course by entering its details below.</CardDescription>
+    		</CardHeader>
+    		<CardContent>
+    			<Form {...form}>
+    				<form onSubmit={handleSubmitWithAction} className="space-y-6">
+    					<FormField
+    						control={form.control}
+    						name="course"
+    						render={({ field }) => (
+    							<FormItem>
+    								<FormLabel>Course Name</FormLabel>
+    								<FormControl>
+    									<Input
+    										placeholder="Enter course name"
+    										{...field}
+    										autoFocus
+    									/>
+    								</FormControl>
+    								<FormMessage />
+    							</FormItem>
+    						)}
+    					/>
+    					<div className="flex gap-4">
+    						<Button
+    							type="submit"
+    							disabled={form.formState.isSubmitting}
+    							className="w-full"
+    						>
+    							{form.formState.isSubmitting ? (
+    								<>
+    									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+    									Creating...
+    								</>
+    							) : (
+    								"Create Course"
+    							)}
+    						</Button>
+    						<Button
+    							type="button"
+    							variant="outline"
+    							onClick={() => form.reset()}
+    							disabled={form.formState.isSubmitting}
+    						>
+    							Reset
+    						</Button>
+    					</div>
+    				</form>
+    			</Form>
+    		</CardContent>
+    	</Card>
+    );
+
+}
+
+##########
+import { z } from "zod";
+
+export const CreateCourseSchema = z.object({
+  course: z
+    .string()
+    .min(1, { message: "Course name is required" })
+    .max(100, { message: "Course name must be less than 100 characters" })
+    .trim(),
+})
+
+export type CreateCourse = z.infer<typeof CreateCourseSchema>

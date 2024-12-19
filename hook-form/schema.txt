@@ -1,7 +1,0 @@
-import { z } from "zod";
-
-export const CreateCourseSchema = z.object({
-	course: z.string().min(1, { message: "Course is required" }),
-});
-
-export type CreateCourse = z.infer<typeof CreateCourseSchema>;
